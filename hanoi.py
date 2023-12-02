@@ -1,4 +1,5 @@
 import turtle
+import copy
 
 #PART A -------------------------------------------------------
 #The function returns a list representing the configuration of the hanoi towers.
@@ -8,24 +9,23 @@ def init(n):
         list[0].append(i)
     return list
 
-#the towers are numbered from 1 to 3 but in the confirguration they are numbered from 0 to 2
 def nbDiscs(board, nt):
-    return len(board[nt-1])
+    return len(board[nt])
 
-#returns the disc found on top of the tower nt (saved int the board at nt-1)
+#returns the disc found on top of the tower nt
 def supDisc(board, nt):
     len_nt = nbDiscs(board, nt)
     if len_nt == 0:
         return -1
     else:
-        return board[nt-1][len_nt-1]
+        return board[nt][len_nt-1]
 
 #returns the position of the disc in the configuration, board 
 def posDisc(board, nd):
     for i in range(len(board)):
         for disc in board[i]:
             if disc == nd:
-                return i+1
+                return i
 
 #returns True if the superiour disc on the tower nt1 can be moved on top of the tower nt2 or False otherwise         
 def verifMove(board, nt1, nt2):
@@ -70,6 +70,7 @@ def movepen(a, b):
     t.down()
 
 def drawBoard(n):
+    print("Drawing the board...")
     movepen(x, y)
     #the variable towerWidth is made by composant_width*(n+1) representing half of one tower
     #       so that the discs can fit on each tower, while leaving a space before and after the towers
@@ -105,7 +106,7 @@ def drawDisc(nd, board, n):
 
     #the variable pos is required in order to know how much space to leave under the disc
     pos = 0
-    while pos < len(board[disc_tower-1]) and board[disc_tower-1][pos]!=nd :
+    while pos < len(board[disc_tower]) and board[disc_tower][pos]!=nd :
         pos+=1
     #at the end of the while pos will be equal to the position of 
     # nb in the list of its tower
@@ -116,7 +117,7 @@ def drawDisc(nd, board, n):
     #in order to set the pen on the bottom left of the disc we need to move the pen at:
     #   discx = the widths of the tower before + the difference in width between the dic nd and the dic n
     #   discy = which represents the height from the table
-    discx = x + (towerWidth)*(disc_tower-1) + composant_width*(n-nd+1)
+    discx = x + (towerWidth)*(disc_tower) + composant_width*(n-nd+1)
     discy = y + 20*pos
 
     #Delete stick behind the disk
@@ -140,7 +141,7 @@ def eraseDisc(nd, board, n):
     disc_tower = posDisc(board, nd)
 
     pos = 0
-    while pos <= len(board[disc_tower-1]) and board[disc_tower-1][pos]!=nd :
+    while pos <= len(board[disc_tower]) and board[disc_tower][pos]!=nd :
         pos+=1
     #at the end of the while pos will be equal to the position of nb in the list of its tower
 
@@ -150,7 +151,7 @@ def eraseDisc(nd, board, n):
     #in order to set the pen on the bottom left of the disc we need to move the pen at:
     #   discx = the widths of the tower before + the difference in width between the dic nd and the dic n
     #   discy = which represents the height from the table
-    discx = x + (towerWidth)*(disc_tower-1) + composant_width*(n-nd+1)
+    discx = x + (towerWidth)*(disc_tower) + composant_width*(n-nd+1)
     discy = y + 20*pos
 
     #delete the disc
@@ -189,24 +190,26 @@ def resetConfig(board, n):
 def readCoords(board): #ADD VERIF MOVE
     ok = False
     while not(ok):
-        tower_start = int(input("Starting tower? "))
-        if 1>tower_start or tower_start>3:
-            print("The tower", tower_start, "does not exist!", end = "")
-        elif supDisc(board, tower_start) == -1:
-            print("Invalid, empty tower.", end="")
-        else:
-            ok = True
+        tower_start = input("Starting tower? ")
+        if tower_start != "":
+            tower_start = int(tower_start)
+            if 0>tower_start or tower_start>2:
+                print("The tower", tower_start, "does not exist! ", end = "")
+            elif supDisc(board, tower_start) == -1:
+                print("Invalid, empty tower. ", end="")
+            else:
+                ok = True
         
     ok = False
     tower_start_sup = supDisc(board, tower_start)
     while not(ok):
         tower_arrival = int(input("Arrival tower? "))
-        if 1>tower_arrival or tower_arrival>3:
-            print("The tower", tower_arrival, "does not exist!", end = "")
+        if 0>tower_arrival or tower_arrival>2:
+            print("The tower", tower_arrival, "does not exist! ", end = "")
         elif tower_arrival == tower_start:
-            print("Invalid, same tower.")
+            print("Invalid, same tower. ",  end = "")
         elif verifMove(board, tower_start, tower_arrival)==False : #NEED TO IMPLEMENT MESSAGE FOR IF START = ARRIVAL
-            print("Invalid, smaller disc.")
+            print("Invalid, smaller disc.",  end = "")
         else:
             ok = True
     
@@ -215,32 +218,94 @@ def readCoords(board): #ADD VERIF MOVE
 def playOne(board, n):
     tower_start, tower_arrival = readCoords(board)
 
-    print("Moving disc", supDisc(board, tower_start), "to tower", tower_arrival)
+    print("Moving disc", supDisc(board, tower_start), "from tower", tower_start, "to tower", tower_arrival)
 
     #erases disc on top of the start tower
     eraseDisc(supDisc(board, tower_start), board, n)
 
-    disc = board[tower_start-1][len(board[tower_start-1])-1]
-    board[tower_arrival-1].append(disc)
-    board[tower_start-1].pop(len(board[tower_start-1])-1) 
+    disc = board[tower_start][len(board[tower_start])-1]
+    board[tower_arrival].append(disc)
+    board[tower_start].pop(len(board[tower_start])-1) 
 
     drawDisc(disc, board, n)
 
+#PART D -------------------------------------------------------
+def lastMove(moves):
+    last_move = 0
+    for move in moves:
+        if move > last_move:
+            last_move = move
+    
+    board1 = moves[last_move-1]
+    board2 = moves[last_move]
+
+    start_tower = -1
+    arrival_tower = -1
+    tower = 0
+    while start_tower == arrival_tower and tower < len(board1):
+        pos = 0
+        while start_tower == arrival_tower and pos < nbDiscs(board1, tower):
+            disc = board1[tower][pos]
+            start_tower = posDisc(board1, disc)
+            arrival_tower = posDisc(board2, disc)
+            pos += 1
+        tower+=1
+    #both loops will stop when the position of a disc in board1 is different than its position in board2 
+    
+    return start_tower, arrival_tower
+
+def cancelLast(moves):
+    print("Cancelling last move.")
+    last_move = 0
+    for move in moves:
+        if move > last_move:
+            last_move = move
+
+    start_tower, arrival_tower = lastMove(moves)
+    last_configuration = moves[last_move]
+    before_last_configuration = moves[last_move-1]
+    disc = supDisc(last_configuration, arrival_tower)
+
+    #the following three lines are used to store the number of discs in n
+    n = 0
+    for i in range(0, 3):
+        n += nbDiscs(last_configuration, i)
+
+    eraseDisc(disc, last_configuration, n)
+    drawDisc(disc, before_last_configuration, n)
+
+    del moves[last_move]
+#did not add option part from the pdf
+#END PART D
+
 def playLoop(board, n):
+    moves = {0:copy.deepcopy(board)}
+
+    max_moves = 2**n-1
+    move = 0
     win = False
-    remaining_moves = n*2
-    while win != True and remaining_moves>0:
-        remaining_moves-=1
-        print("Move number", n*2-remaining_moves)
+    while win != True and move<=max_moves:
+        print("Move number", move+1, "---------------------------")
+        print("Remaining moves:", max_moves-move)
+
         playOne(board, n)
+        move += 1
+        moves[move] = board
+
+        cancel = input("Cancel move? ")
+        if cancel == "yes":
+            cancelLast(moves)
+            move -= 1
+            board = copy.deepcopy(moves[move])
 
         win = win or verifVictory(board, n)
-        if not(win):
-            print("Remaining moves:", remaining_moves)
-    if remaining_moves>0:
+    if move<=max_moves:
         x=input("Congrats! You won!")
     else:
         x=input("You lost!")
+
+#DID NOT ADD POSSIBLE IMPROVEMENTS PART C
+#END PART C
 
 print("Hanoi towers, welcome")
 n = int(input("How many discs? "))
@@ -249,3 +314,4 @@ drawBoard(n)
 drawConfig(board, n)
 playLoop(board, n)
 x = input()
+
