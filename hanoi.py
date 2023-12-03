@@ -1,5 +1,6 @@
 import turtle
 import copy
+import time
 
 #PART A -------------------------------------------------------
 #The function returns a list representing the configuration of the hanoi towers.
@@ -262,8 +263,8 @@ def cancelLast(moves):
             last_move = move
 
     start_tower, arrival_tower = lastMove(moves)
-    last_configuration = moves[last_move]
-    before_last_configuration = moves[last_move-1]
+    last_configuration = copy.deepcopy(moves[last_move])
+    before_last_configuration = copy.deepcopy(moves[last_move-1])
     disc = supDisc(last_configuration, arrival_tower)
 
     #the following three lines are used to store the number of discs in n
@@ -290,28 +291,186 @@ def playLoop(board, n):
 
         playOne(board, n)
         move += 1
-        moves[move] = board
-
-        cancel = input("Cancel move? ")
-        if cancel == "yes":
-            cancelLast(moves)
-            move -= 1
-            board = copy.deepcopy(moves[move])
+        moves[move] = copy.deepcopy(board)
 
         win = win or verifVictory(board, n)
+
+        if not(win):
+            cancel = input("Cancel move? ")
+            if cancel == "yes":
+                cancelLast(moves)
+                move -= 1
+                board = copy.deepcopy(moves[move])
+
+        win = win or verifVictory(board, n)
+                
     if move<=max_moves:
-        x=input("Congrats! You won!")
+        print("Congrats! You won!")
     else:
-        x=input("You lost!")
+        print("You lost!")
+    return move
 
 #DID NOT ADD POSSIBLE IMPROVEMENTS PART C
 #END PART C
 
+#Part E ---------------------
+def saveScore(scores, name,  n, nbmoves, game_time):
+    print("Saving score")
+    game = {"discs":n, "moves":nbmoves, "time":game_time}
+    if name in scores:
+        scores[name].append(game)
+    else:
+        scores[name] = [game]
+
+def getBestScore(scores, name, nbdiscs):
+    player_scores = scores[name]
+    if len(player_scores) == 0:
+        return -1
+    best_score = -1
+    for score in player_scores:
+        if score["discs"] == nbdiscs and (best_score > score["moves"] or best_score == -1):
+            best_score = score["moves"]
+    return best_score
+
+def displayScores(scores, n):
+    ordered_players = []
+    for player in scores:
+        playerBestScore = getBestScore(scores, player, n)
+        if playerBestScore != -1:
+            i = 0
+            while i<len(ordered_players) and playerBestScore > getBestScore(scores, ordered_players[i], n):
+                i += 1
+            ordered_players.insert(i, player)
+
+    print("--------BEST SCORES FOR", n, "DISCS--------")
+    for i in range(len(ordered_players)):
+        print("Place", i+1, end=" ")
+        if i < len(ordered_players):
+            print(ordered_players[i])
+        else:
+            print("----EMPTY----")
+
+def getBestTime(scores, name):
+    player_scores = scores[name]
+    if len(player_scores) == 0:
+        print("Error, empty score")
+        return -1
+    best_time = -1
+    for score in player_scores:
+        if best_time > score["time"] or best_time == -1:
+            best_time = score["time"]
+    return best_time
+
+def displayTimes(scores):
+    ordered_players = []
+    if len(scores) == 0:
+        print("NO GAMES PLAYED")
+    else:
+        for player in scores:
+            player_best = getBestTime(scores, player)
+            i = 0
+            while i < len(ordered_players) and \
+                player_best > getBestTime(scores, ordered_players[i]):
+                i+=1
+            ordered_players.insert(i, player)
+
+    print("-------PLAYERS RANKED BY THEIR TIME-------")
+    for i in range(len(ordered_players)):
+        print(i+1, ordered_players[i])
+
+def avgTime(scores):
+    average_per_player = {}
+    for player in scores:
+        nb_moves = 0
+        time = 0
+        for game in scores[player]:
+            nb_moves += game["moves"]
+            time += game["time"]
+        avg_player = time/nb_moves
+        average_per_player[player] = avg_player
+    return average_per_player
+
+def displayByAverage(scores):
+    average_per_player= avgTime(scores)
+    ordered_players = []
+    for player in average_per_player:
+        avg_player = average_per_player[player]
+        i = 0
+        while i < len(ordered_players) and avg_player > average_per_player[ordered_players[i]]:
+            i+=1
+        ordered_players.insert(i, player)
+    
+    print("-------PLAYERS RANKED BY AVERAGE THINKING TIME-------")
+    for i in range(len(ordered_players)):
+        print(i+1, ordered_players[i])
+        
+#did not add options 8, 10, 11
+#END PART E -------------------
+
+# each name of a player is the jey to a list of games, each game is also a list, which includes
+#   the number of discs on the first poisiton and then the number of moves on the second position and the time on the third
+#   that being said the dictionary scores looks something like this:
+#   scores = { name:[
+#           {"discs":x, "moves":y, "time":z},
+#           {"discs":a, "moves":b, "time":c}] 
+#           }
+scores = {"Radu":[{"discs":4, "moves":2, "time":32}, \
+                        {"discs":3, "moves":18, "time":4444}, \
+                        {"discs":3, "moves":9, "time":99}], \
+                        
+            "Jhon":[{"discs":5, "moves":5, "time":42}, \
+                        {"discs":3, "moves":10, "time":20}, \
+                        {"discs":2, "moves":100, "time":5}], \
+                        
+            "Maya":[{"discs":4, "moves":66, "time":10}, \
+                        {"discs":5, "moves":56, "time":10}, \
+                        {"discs":3, "moves":33, "time":44}], \
+                        
+            "Jasmine":[{"discs":6, "moves":56, "time":33}, \
+                        {"discs":4, "moves":44, "time":41}, \
+                        {"discs":3, "moves":23, "time":55}], \
+                        
+            "Maxwell":[{"discs":4, "moves":22, "time":31234}, \
+                        {"discs":5, "moves":13, "time":44344}, \
+                        {"discs":6, "moves":96, "time":99333}], \
+                            }
+
+
+#scores = {}
+board = [[],[],[]]
 print("Hanoi towers, welcome")
-n = int(input("How many discs? "))
-board = init(n)
-drawBoard(n)
-drawConfig(board, n)
-playLoop(board, n)
-x = input()
+rep = "play"
+while rep in ["play", "ranking scores", "ranking time", "ranking thinking time"]:
+    rep = input("What do you want to do / see (play / ranking scores / ranking time / ranking thinking time) ? ")
+    if rep == "play":
+        resetConfig(board, n)
+        t.color("white")
+        drawBoard(n)
+        t.color("black")
+
+        n = int(input("How many discs? "))
+        board = init(n)
+        drawBoard(n)
+        drawConfig(board, n)
+
+        start_time = time.time()
+        nbmoves = playLoop(board, n)
+        game_time = round(time.time() - start_time, 2)
+
+        name = input("Name? ")
+        saveScore(scores, name, n, nbmoves, game_time)
+    elif rep == "ranking scores":
+        n = int(input("Ranking by score for how many discs? "))
+        displayScores(scores, n)
+    elif rep == "ranking time":
+        displayTimes(scores)
+    elif rep == "ranking thinking time":
+        displayByAverage(scores)
+    elif rep == "goodbye":
+        rep = ""
+    
+
+print("Goodbye!")
+
+input()
 
