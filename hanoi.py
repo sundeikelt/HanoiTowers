@@ -438,6 +438,7 @@ scores = {"Radu":[{"discs":4, "moves":2, "time":32}, \
 
 #scores = {}
 board = [[],[],[]]
+n = 0
 print("Hanoi towers, welcome")
 rep = "play"
 while rep in ["play", "ranking scores", "ranking time", "ranking thinking time"]:
