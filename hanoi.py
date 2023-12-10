@@ -231,12 +231,20 @@ def playOne(board, n):
     drawDisc(disc, board, n)
 
 #PART D -------------------------------------------------------
+def find_last_move(moves) :
+    last_move = 0
+    for move in moves:
+        if move > last_move:
+            last_move = move
+    return last_move 
+#pas vraiment utile mais bon
+    
 def lastMove(moves):
     last_move = 0
     for move in moves:
         if move > last_move:
             last_move = move
-    
+
     board1 = moves[last_move-1]
     board2 = moves[last_move]
 
@@ -252,7 +260,7 @@ def lastMove(moves):
             pos += 1
         tower+=1
     #both loops will stop when the position of a disc in board1 is different than its position in board2 
-    
+    #dont understand this part i swear j'ai passé 4h dessus j'ai toujours pas compris JE VAIS PT UN CABLE
     return start_tower, arrival_tower
 
 def cancelLast(moves):
