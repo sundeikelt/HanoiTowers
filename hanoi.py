@@ -52,7 +52,7 @@ def verifVictory(board, n):
 #PART B -------------------------------------------------------
 
 #basic configuration for the turtle and setting the starting position at a predifined x and y which will later be used
-t = turtle.Turtle()
+t = turtle.Turtle() # what does it means 
 t.speed(10)
 x = -300
 y = 100
@@ -69,12 +69,22 @@ def movepen(a, b):
     t.up()
     t.goto(a, b)
     t.down()
+    
+#I did this to find the length of the board maybe its simpler ? idk tell me if this work because i dont understand your formula
+def longueur(n):
+    a = 40
+    somme = 0
+    for i in range (n) :
+        somme += a
+        a= a+30
+    boardlenght = 3*somme + 4*20
+    return boardlenght
 
 def drawBoard(n):
     movepen(x, y)
     #the variable towerWidth is made by composant_width*(n+1) representing half of one tower
     #       so that the discs can fit on each tower, while leaving a space before and after the towers
-    towerWidth = composant_width*(n+1)*2+stickw
+    towerWidth = composant_width*(n+1)*2+stickw #tu pourras me reexpliquer la formule stp mon coeur
     #since there are 3 towers, the board width is the the towerWidth*3
     boardWidth = towerWidth*3
 
