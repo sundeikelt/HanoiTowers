@@ -71,7 +71,6 @@ def movepen(a, b):
     t.down()
 
 def drawBoard(n):
-    print("Drawing the board...")
     movepen(x, y)
     #the variable towerWidth is made by composant_width*(n+1) representing half of one tower
     #       so that the discs can fit on each tower, while leaving a space before and after the towers
@@ -216,8 +215,9 @@ def readCoords(board): #ADD VERIF MOVE
     
     return tower_start, tower_arrival
 
-def playOne(board, n):
-    tower_start, tower_arrival = readCoords(board)
+def playOne(board, n, tower_start = -1, tower_arrival = -1):
+    if tower_start == -1:
+        tower_start, tower_arrival = readCoords(board)
 
     print("Moving disc", supDisc(board, tower_start), "from tower", tower_start, "to tower", tower_arrival)
 
@@ -285,7 +285,7 @@ def playLoop(board, n):
     max_moves = 2**n-1
     move = 0
     win = False
-    while win != True and move<=max_moves:
+    while win != True and move<max_moves:
         print("Move number", move+1, "---------------------------")
         print("Remaining moves:", max_moves-move)
 
@@ -304,11 +304,12 @@ def playLoop(board, n):
 
         win = win or verifVictory(board, n)
                 
-    if move<=max_moves:
+    if move<max_moves:
         print("Congrats! You won!")
     else:
         print("You lost!")
-    return move
+    nb_moves = move
+    return nb_moves, win
 
 #DID NOT ADD POSSIBLE IMPROVEMENTS PART C
 #END PART C
@@ -407,6 +408,23 @@ def displayByAverage(scores):
 #did not add options 8, 10, 11
 #END PART E -------------------
 
+def autoSolve(n, disc=-1, source = 0, destination = 2, auxiliary = 1, moves = []):
+    if disc == -1:
+        disc = n
+    if disc==1:
+        moves.append([source, destination])
+        return
+    autoSolve(n, disc-1, source, auxiliary, destination, moves)
+    moves.append([source, destination])
+    autoSolve(n, disc-1, auxiliary, destination, source, moves)
+
+    return moves
+
+def animateMoves(board, n, moves):
+    for move in moves:
+        playOne(board, n, move[0], move[1])
+    return 0
+
 # each name of a player is the jey to a list of games, each game is also a list, which includes
 #   the number of discs on the first poisiton and then the number of moves on the second position and the time on the third
 #   that being said the dictionary scores looks something like this:
@@ -441,25 +459,41 @@ board = [[],[],[]]
 n = 0
 print("Hanoi towers, welcome")
 rep = "play"
-while rep in ["play", "ranking scores", "ranking time", "ranking thinking time"]:
-    rep = input("What do you want to do / see (play / ranking scores / ranking time / ranking thinking time) ? ")
-    if rep == "play":
-        resetConfig(board, n)
-        t.color("white")
-        drawBoard(n)
-        t.color("black")
+while rep in ["play", "auto", "ranking scores", "ranking time", "ranking thinking time"]:
+    rep = input("What do you want to do / see (play / auto / ranking scores / ranking time / ranking thinking time / goodbye) ? ")
+    if rep == "play" or rep =="auto":
+        if board != [[], [], []]:
+            resetConfig(board, n)
+            t.color("white")
+            drawBoard(n)
+            t.color("black")
 
         n = int(input("How many discs? "))
         board = init(n)
         drawBoard(n)
         drawConfig(board, n)
 
-        start_time = time.time()
-        nbmoves = playLoop(board, n)
-        game_time = round(time.time() - start_time, 2)
+        if rep == "play":
+            start_time = time.time()
+            nbmoves, win = playLoop(board, n)
+            game_time = round(time.time() - start_time, 2)
 
-        name = input("Name? ")
-        saveScore(scores, name, n, nbmoves, game_time)
+            if win:
+                name = input("Name? ")
+                saveScore(scores, name, n, nbmoves, game_time)
+            else:
+                rep = input("Do you want to see the solution? ")
+                if rep == "yes":
+                    rep = "auto" 
+                    resetConfig(board, n)
+                    board = init(n) 
+                    drawConfig(board, n) #prepares the board for the solution simulation
+                #changing rep into auto will trigger the if rep=="auto" lines underneath,
+                #   while also allowing the simple response of "auto" when the player is asked what they want to do
+
+        if rep == "auto":
+            moves = autoSolve(n)
+            animateMoves(board, n, moves)
     elif rep == "ranking scores":
         n = int(input("Ranking by score for how many discs? "))
         displayScores(scores, n)
