@@ -186,8 +186,8 @@ def resetConfig(board, n):
 #did not add the possible improvements part
 
 #PART C -------------------------------------------------------
-#OPTIMIZE
-def readCoords(board): #ADD VERIF MOVE
+#the fucntion reads the coordinates of a move until they are valid and they are then returned
+def readCoords(board):
     ok = False
     while not(ok):
         tower_start = input("Starting tower? ")
@@ -208,14 +208,16 @@ def readCoords(board): #ADD VERIF MOVE
             print("The tower", tower_arrival, "does not exist! ", end = "")
         elif tower_arrival == tower_start:
             print("Invalid, same tower. ",  end = "")
-        elif verifMove(board, tower_start, tower_arrival)==False : #NEED TO IMPLEMENT MESSAGE FOR IF START = ARRIVAL
+        elif verifMove(board, tower_start, tower_arrival)==False :
             print("Invalid, smaller disc.",  end = "")
         else:
             ok = True
     
     return tower_start, tower_arrival
 
+#implements a move, given or not, representing a round
 def playOne(board, n, tower_start = -1, tower_arrival = -1):
+    #during a normal playthrough tower_start and tower_arrival are not given, but in the animateMoves() they are mentioned
     if tower_start == -1:
         tower_start, tower_arrival = readCoords(board)
 
@@ -231,43 +233,46 @@ def playOne(board, n, tower_start = -1, tower_arrival = -1):
     drawDisc(disc, board, n)
 
 #PART D -------------------------------------------------------
+#returns the start_tower and arrival_tower of the last move made by the player
 def lastMove(moves):
     last_move = 0
     for move in moves:
         if move > last_move:
-            last_move = move
+            last_move = move #in the dictionary the key of the last move is the biggest
     
-    board1 = moves[last_move-1]
-    board2 = moves[last_move]
+    #in order to get the last move's towers we need the board of the last move and the one before
+    before_last_configuration = moves[last_move-1]
+    last_configuration = moves[last_move]
 
     start_tower = -1
     arrival_tower = -1
     tower = 0
-    while start_tower == arrival_tower and tower < len(board1):
+    while start_tower == arrival_tower and tower < len(before_last_configuration):
         pos = 0
-        while start_tower == arrival_tower and pos < nbDiscs(board1, tower):
-            disc = board1[tower][pos]
-            start_tower = posDisc(board1, disc)
-            arrival_tower = posDisc(board2, disc)
+        while start_tower == arrival_tower and pos < nbDiscs(before_last_configuration, tower):
+            disc = before_last_configuration[tower][pos]
+            start_tower = posDisc(before_last_configuration, disc)
+            arrival_tower = posDisc(last_configuration, disc)
             pos += 1
         tower+=1
-    #both loops will stop when the position of a disc in board1 is different than its position in board2 
+    #both loops will stop when the position of a disc in the before last configuration is different than its position in last configuration 
     
     return start_tower, arrival_tower
 
+#cancels the last move in the configuration and in turtle
 def cancelLast(moves):
     print("Cancelling last move.")
     last_move = 0
     for move in moves:
-        if move > last_move:
+        if move > last_move: #they key of the last move is the biggest in the dictionary moves
             last_move = move
 
     start_tower, arrival_tower = lastMove(moves)
-    last_configuration = copy.deepcopy(moves[last_move])
-    before_last_configuration = copy.deepcopy(moves[last_move-1])
+    last_configuration = moves[last_move]
+    before_last_configuration = moves[last_move-1]
     disc = supDisc(last_configuration, arrival_tower)
 
-    #the following three lines are used to store the number of discs in n
+    #the following three lines are used to store the number of discs of the configuration in n
     n = 0
     for i in range(0, 3):
         n += nbDiscs(last_configuration, i)
@@ -282,7 +287,7 @@ def cancelLast(moves):
 def playLoop(board, n):
     moves = {0:copy.deepcopy(board)}
 
-    max_moves = 2**n-1
+    max_moves = 2**(n+1) #the most optimal solution is 2**n-1, but we've decided to give the players more moves
     move = 0
     win = False
     while win != True and move<max_moves:
@@ -291,7 +296,7 @@ def playLoop(board, n):
 
         playOne(board, n)
         move += 1
-        moves[move] = copy.deepcopy(board)
+        moves[move] = copy.deepcopy(board) #we use copy.deepcopy() to save the configurations because without it would just save sinonyms
 
         win = win or verifVictory(board, n)
 
@@ -308,64 +313,82 @@ def playLoop(board, n):
         print("Congrats! You won!")
     else:
         print("You lost!")
-    nb_moves = move
-    return nb_moves, win
+    #we can return the variable move as in it is saved the nuber of moves made by a player during a round
+    return move, win
 
 #DID NOT ADD POSSIBLE IMPROVEMENTS PART C
 #END PART C
 
 #Part E ---------------------
+# each name of a player is the key to a list of games, each game is also a list, which includes
+#   the number of discs on the first poisiton and then the number of moves on the second position and the time on the third
+#   that being said the dictionary scores looks something like this:
+#   scores = { name:[
+#           {"discs":x, "moves":y, "time":z},
+#           {"discs":a, "moves":b, "time":c}] 
+#           }
 def saveScore(scores, name,  n, nbmoves, game_time):
     print("Saving score")
     game = {"discs":n, "moves":nbmoves, "time":game_time}
-    if name in scores:
+    if name in scores: #check if name already in dictionary
         scores[name].append(game)
     else:
         scores[name] = [game]
 
+#auxiliary function that returns the best score of a player, 
+#   helps making the displayScores() clearer
 def getBestScore(scores, name, nbdiscs):
-    player_scores = scores[name]
-    if len(player_scores) == 0:
+    player_scores = scores[name] #we do not check if the name is in the scores dictioary is the function is only used by displayScores()
+    if len(player_scores) == 0: #this means the the player has not played yet
         return -1
     best_score = -1
     for score in player_scores:
         if score["discs"] == nbdiscs and (best_score > score["moves"] or best_score == -1):
             best_score = score["moves"]
+    #at the end of the for if the player has not yet played with a configuration of nbdiscs, then best_score remains one
     return best_score
 
+#displays ranked players by their score for a certain number of discs
 def displayScores(scores, n):
     ordered_players = []
-    for player in scores:
-        playerBestScore = getBestScore(scores, player, n)
-        if playerBestScore != -1:
-            i = 0
-            while i<len(ordered_players) and playerBestScore > getBestScore(scores, ordered_players[i], n):
-                i += 1
-            ordered_players.insert(i, player)
+    if len(scores) == 0:
+        print("NO GAMES PLAYED => NO SCORES TO COMPARE")
+    else:
+        for player in scores:
+            playerBestScore = getBestScore(scores, player, n)
+            if playerBestScore != -1: #if the player has had games with n discs
+                i = 0
+                while i<len(ordered_players) and playerBestScore > getBestScore(scores, ordered_players[i], n):
+                    i += 1
+                ordered_players.insert(i, player)
 
-    print("--------BEST SCORES FOR", n, "DISCS--------")
-    for i in range(len(ordered_players)):
-        print("Place", i+1, end=" ")
-        if i < len(ordered_players):
-            print(ordered_players[i])
-        else:
-            print("----EMPTY----")
+        print("--------BEST SCORES FOR", n, "DISCS--------")
+        for i in range(len(ordered_players)):
+            print("Place", i+1, end=" ")
+            if i < len(ordered_players):
+                print(ordered_players[i])
+            else:
+                print("----EMPTY----")
 
+#auxiliary function that returns the best time of a player, 
+#   helps making the displayTimes() clearer
 def getBestTime(scores, name):
-    player_scores = scores[name]
-    if len(player_scores) == 0:
+    player_scores = scores[name] #we do not check if the name is in the scores dictioary is the function is only used by displayTime()
+    if len(player_scores) == 0: #this means the player has not played, but his name is in the dictionary
         print("Error, empty score")
         return -1
     best_time = -1
     for score in player_scores:
         if best_time > score["time"] or best_time == -1:
             best_time = score["time"]
+    #at the end of the for best_time will have the best time of all the games played by the player with the given name
     return best_time
 
+#displpays ranked players by time
 def displayTimes(scores):
     ordered_players = []
     if len(scores) == 0:
-        print("NO GAMES PLAYED")
+        print("NO GAMES PLAYED => NO SCORES TO COMPARE")
     else:
         for player in scores:
             player_best = getBestTime(scores, player)
@@ -375,10 +398,11 @@ def displayTimes(scores):
                 i+=1
             ordered_players.insert(i, player)
 
-    print("-------PLAYERS RANKED BY THEIR TIME-------")
-    for i in range(len(ordered_players)):
-        print(i+1, ordered_players[i])
+        print("-------PLAYERS RANKED BY THEIR TIME-------")
+        for i in range(len(ordered_players)):
+            print(i+1, ordered_players[i])
 
+#returns a dictionary containing the avreage time per round for each player
 def avgTime(scores):
     average_per_player = {}
     for player in scores:
@@ -391,6 +415,7 @@ def avgTime(scores):
         average_per_player[player] = avg_player
     return average_per_player
 
+#displays the pplayers ranked by their avreage thinking time
 def displayByAverage(scores):
     average_per_player= avgTime(scores)
     ordered_players = []
@@ -400,6 +425,7 @@ def displayByAverage(scores):
         while i < len(ordered_players) and avg_player > average_per_player[ordered_players[i]]:
             i+=1
         ordered_players.insert(i, player)
+    #ordered_players contains all the players sorted
     
     print("-------PLAYERS RANKED BY AVERAGE THINKING TIME-------")
     for i in range(len(ordered_players)):
@@ -408,6 +434,7 @@ def displayByAverage(scores):
 #did not add options 8, 10, 11
 #END PART E -------------------
 
+#recurssive algorithm that automatically solves the Hanoi Towers problem and returns a list of 2-item lists representing moves
 def autoSolve(n, disc=-1, source = 0, destination = 2, auxiliary = 1, moves = []):
     if disc == -1:
         disc = n
@@ -420,18 +447,14 @@ def autoSolve(n, disc=-1, source = 0, destination = 2, auxiliary = 1, moves = []
 
     return moves
 
+#simulates a playthrough by using a moves list which contains multiple lists of to elements:
+#   [tower_start, tower_arrival]
 def animateMoves(board, n, moves):
     for move in moves:
         playOne(board, n, move[0], move[1])
     return 0
 
-# each name of a player is the jey to a list of games, each game is also a list, which includes
-#   the number of discs on the first poisiton and then the number of moves on the second position and the time on the third
-#   that being said the dictionary scores looks something like this:
-#   scores = { name:[
-#           {"discs":x, "moves":y, "time":z},
-#           {"discs":a, "moves":b, "time":c}] 
-#           }
+
 scores = {"Radu":[{"discs":4, "moves":2, "time":32}, \
                         {"discs":3, "moves":18, "time":4444}, \
                         {"discs":3, "moves":9, "time":99}], \
